@@ -10,7 +10,7 @@
 | CUA-005 Reporte compartible del día y del mes (imagen PNG y PDF) | Hecho |
 | CUA-006 Prueba de punta a punta (`npm test`, 16 revisiones) | En verde (Edge, escritorio) |
 | CUA-007 Prueba en celular real: compartir por WhatsApp, PDF, instalar en inicio | ESPERA_JORGE |
-| CUA-008 Publicar dist/ con HTTPS y enlazar desde Hotmart | Pendiente |
+| CUA-008 Publicar en GitHub Pages (https://lordfullstack.github.io/cuadrao/) | Hecho; falta enlazarlo desde Hotmart |
 
 Decisiones:
 - Se parte de la PWA (no de la versión nativa Kotlin). La nativa queda como opción para Play Store.

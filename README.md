@@ -38,7 +38,7 @@ Antes se llamaba "Caja del Día". El original quedó sin tocar en `Descargas\caj
 Para verla en el celular por USB: `adb reverse tcp:5180 tcp:5180` y abrir http://localhost:5180 en Chrome.
 
 ## Publicar
-Se publica **solo la carpeta `dist/`** en cualquier hosting con HTTPS (GitHub Pages, Netlify, Vercel). Cada `npm run build` cambia la versión del service worker sola, así los celulares bajan la nueva.
+Publicada en **https://lordfullstack.github.io/cuadrao/**. Cada push a `main` arma `dist/` y lo publica solo (`.github/workflows/publicar.yml`). La versión del service worker cambia en cada build, así los celulares bajan la nueva.
 
 ## Datos
 Viven solo en el celular (localStorage, llave `cajadia:v1`, la misma de Caja del Día para no perder datos).
