@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caja del Día</title>
+<meta name="description" content="Registro de gastos, ingresos y cuadre de caja del negocio">
+<meta name="theme-color" content="#F6F4EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --fondo:#F6F4EE; --superficie:#FFFFFF; --superficie-2:#FBFAF7; --borde:#E3DFD4; --borde-fuerte:#D6D1C4; --linea:#EFECE4;
+  --texto:#1A1A17; --texto-suave:#5E5B53; --chip-off:#ECE8DD;
+  --primario:#0F766E; --primario-suave:#CCFBF1; --primario-texto:#FFFFFF;
+  --gasto:#B45309; --gasto-fondo:#FDF8F1; --gasto-borde:#EFE6D8; --barra-gasto:#D97706;
+  --transf:#1D4ED8; --transf-fondo:#F3F6FD; --transf-borde:#DCE5F7; --barra-transf:#3B82F6;
+  --cuadre-fondo:#1A1A17; --cuadre-texto:#F6F4EE; --cuadre-suave:#C9C4B6; --cuadre-linea:#45433D;
+  --venta-acento:#5EEAD4; --boton-cierre:#2DD4BF; --boton-cierre-texto:#042F2E;
+  --peligro:#B91C1C; --sombra:0 8px 24px rgba(26,26,23,.18);
+  --radio:14px; --radio-sm:10px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --fondo:#141413; --superficie:#1E1D1B; --superficie-2:#262522; --borde:rgba(255,255,255,.09); --borde-fuerte:rgba(255,255,255,.16); --linea:rgba(255,255,255,.07);
+    --texto:#EDEAE2; --texto-suave:#ABA697; --chip-off:#2A2926;
+    --primario:#2DD4BF; --primario-suave:#123B37; --primario-texto:#042F2E;
+    --gasto:#F59E0B; --gasto-fondo:#2A2117; --gasto-borde:#3C2E1C; --barra-gasto:#F59E0B;
+    --transf:#7AA7FA; --transf-fondo:#18202E; --transf-borde:#243150; --barra-transf:#60A5FA;
+    --cuadre-fondo:#2A2926; --cuadre-texto:#EDEAE2; --cuadre-suave:#ABA697; --cuadre-linea:#3E3C37;
+    --peligro:#F87171; --sombra:0 8px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --fondo:#141413; --superficie:#1E1D1B; --superficie-2:#262522; --borde:rgba(255,255,255,.09); --borde-fuerte:rgba(255,255,255,.16); --linea:rgba(255,255,255,.07);
+  --texto:#EDEAE2; --texto-suave:#ABA697; --chip-off:#2A2926;
+  --primario:#2DD4BF; --primario-suave:#123B37; --primario-texto:#042F2E;
+  --gasto:#F59E0B; --gasto-fondo:#2A2117; --gasto-borde:#3C2E1C; --barra-gasto:#F59E0B;
+  --transf:#7AA7FA; --transf-fondo:#18202E; --transf-borde:#243150; --barra-transf:#60A5FA;
+  --cuadre-fondo:#2A2926; --cuadre-texto:#EDEAE2; --cuadre-suave:#ABA697; --cuadre-linea:#3E3C37;
+  --peligro:#F87171; --sombra:0 8px 24px rgba(0,0,0,.5);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.55}
+:focus-visible{outline:3px solid var(--primario);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{max-width:480px;margin:0 auto;min-height:100vh}
+.pantalla{padding:0 12px calc(96px + env(safe-area-inset-bottom,0px))}
+.pantalla.con-cuadre{padding-bottom:calc(212px + env(safe-area-inset-bottom,0px))}
+.cab{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 10px;gap:8px}
+.cab-centro{text-align:center}
+.cab-titulo{font-size:18px;font-weight:800;margin:0}
+.cab-sub{font-size:12px;color:var(--texto-suave);font-weight:600}
+.cab-simple{display:flex;justify-content:space-between;align-items:baseline;padding:16px 4px 10px}
+.btn-icono{width:44px;height:44px;border-radius:12px;border:1px solid var(--borde);background:var(--superficie);display:flex;align-items:center;justify-content:center;flex:none}
+.pila{display:flex;flex-direction:column;gap:10px}
+.dos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dos-apretado{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.caja{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio);padding:12px}
+.campo-caja{display:flex;flex-direction:column;gap:4px;padding:10px 12px}
+.etq{font-size:13px;font-weight:700;color:var(--texto-suave)}
+.entrada{height:44px;width:100%;border:1px solid var(--borde-fuerte);border-radius:var(--radio-sm);padding:0 12px;background:var(--superficie-2);font-size:16px;min-width:0}
+.entrada.grande{font-size:18px;font-weight:800;text-align:right}
+.entrada:disabled{opacity:.7}
+.fila-tit{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.h2{margin:0;font-size:16px;font-weight:800}
+.total-gasto{font-size:17px;font-weight:800;color:var(--gasto)}
+.total-transf{font-size:17px;font-weight:800;color:var(--transf)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:40px;padding:0 13px;border-radius:999px;border:1px solid var(--borde-fuerte);background:var(--superficie);font-size:14px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--gasto);border-color:var(--gasto);color:#FFFFFF}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#1A1305}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#1A1305}}
+.agregar{display:flex;gap:8px}
+.btn-mas{width:52px;height:44px;border:0;border-radius:var(--radio-sm);display:flex;align-items:center;justify-content:center;flex:none;color:#FFFFFF}
+.btn-mas.gasto{background:var(--gasto)}
+.btn-mas.transf{background:var(--transf)}
+:root[data-theme="dark"] .btn-mas{color:#141413}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn-mas{color:#141413}}
+.item{height:44px;border-radius:var(--radio-sm);padding:0 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;min-width:0}
+.item.gasto{background:var(--gasto-fondo);border:1px solid var(--gasto-borde)}
+.item.transf{background:var(--transf-fondo);border:1px solid var(--transf-borde)}
+.item-nom{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-val{font-size:14px;font-weight:800;flex:none}
+.ayuda{font-size:12px;color:var(--texto-suave);margin:0}
+.vacio-mini{font-size:13px;color:var(--texto-suave);margin:0;padding:6px 0}
+.abajo{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;flex-direction:column;align-items:center}
+.abajo-in{width:100%;max-width:480px}
+.cuadre{background:var(--cuadre-fondo);color:var(--cuadre-texto);border-radius:18px 18px 0 0;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.cuadre-formula{font-size:12px;color:var(--cuadre-suave);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cuadre-fila{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cuadre-etq{font-size:12px;font-weight:700;color:var(--cuadre-suave);display:block}
+.cuadre-venta{font-size:26px;font-weight:800;color:var(--venta-acento);line-height:1.15}
+.btn-cierre{height:48px;padding:0 18px;border:0;border-radius:12px;background:var(--boton-cierre);color:var(--boton-cierre-texto);font-size:15px;font-weight:800;flex:none}
+.btn-reabrir{height:48px;padding:0 16px;border:1px solid var(--cuadre-linea);border-radius:12px;background:transparent;color:var(--cuadre-texto);font-size:14px;font-weight:700;flex:none}
+.nav{background:var(--superficie);border-top:1px solid var(--borde);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:6px 8px calc(10px + env(safe-area-inset-bottom,0px))}
+.nav button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;min-height:48px;font-size:12px;font-weight:600;color:var(--texto-suave)}
+.nav button[aria-current="page"]{color:var(--primario);font-weight:800}
+.hero{background:var(--primario);color:var(--primario-texto);border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.hero-etq{font-size:13px;font-weight:600;opacity:.85;display:block}
+.hero-num{font-size:32px;font-weight:800;line-height:1.1}
+.hero-der{text-align:right}
+.hero-sec{font-size:18px;font-weight:800}
+.mini{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.mini-etq{font-size:13px;color:var(--texto-suave);font-weight:600}
+.mini-val{font-size:16px;font-weight:800}
+.c-gasto{color:var(--gasto)} .c-transf{color:var(--transf)} .c-prim{color:var(--primario)}
+.barra-fila{display:grid;grid-template-columns:72px minmax(0,1fr) 72px;align-items:center;gap:8px;font-size:13px}
+.barra-fondo{height:10px;border-radius:999px;background:var(--linea);overflow:hidden}
+.barra{height:10px;border-radius:999px;background:var(--barra-gasto)}
+.mezcla{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--linea)}
+.leyenda{display:flex;justify-content:space-between;gap:8px;font-size:13px;flex-wrap:wrap}
+.punto{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--chip-off);border-radius:12px;padding:4px}
+.tab{height:44px;border:0;border-radius:9px;background:transparent;color:var(--texto-suave);font-size:14px;font-weight:700}
+.tab[aria-selected="true"]{background:var(--superficie);color:var(--texto)}
+.fila-dia{width:100%;display:flex;align-items:center;justify-content:space-between;min-height:56px;border:0;border-top:1px solid var(--linea);background:transparent;text-align:left;padding:0;gap:8px}
+.fila-dia:first-child{border-top:0}
+.fila-dia small{display:block;font-size:12px;color:var(--texto-suave)}
+.fila-dia strong{font-size:14px}
+.cuaderno{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.cuaderno .l{display:flex;justify-content:space-between;gap:8px}
+.cuaderno .sep{border-top:1px solid var(--linea);padding-top:6px;margin-top:2px}
+.cuaderno .fin{border-top:2px solid var(--texto);padding-top:8px;margin-top:4px;align-items:baseline}
+.badge{font-size:12px;font-weight:700;padding:4px 8px;border-radius:999px;background:var(--primario-suave);color:var(--primario)}
+.badge.abierto{background:var(--chip-off);color:var(--texto-suave)}
+.btn-sec{height:48px;border:1px solid var(--texto);border-radius:12px;background:var(--superficie);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.btn-link{border:0;background:transparent;color:var(--primario);font-weight:700;font-size:14px;min-height:44px;padding:0 4px}
+.firma{text-align:center;font-size:12px;color:var(--texto-suave);padding:8px 0}
+.vacio{text-align:center;padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.vacio p{margin:0;color:var(--texto-suave)}
+.btn-prim{height:48px;padding:0 20px;border:0;border-radius:12px;background:var(--primario);color:var(--primario-texto);font-size:15px;font-weight:800}
+.velo{position:fixed;inset:0;background:rgba(20,20,19,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.hoja{width:100%;max-width:480px;background:var(--superficie);border-radius:20px 20px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;box-shadow:var(--sombra)}
+.hoja-acciones{display:flex;gap:8px}
+.hoja-acciones > *{flex:1}
+.btn-borrar{height:48px;border:1px solid var(--peligro);border-radius:12px;background:transparent;color:var(--peligro);font-weight:700}
+.btn-borrar.confirmar{background:var(--peligro);color:#FFFFFF}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(230px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--texto);color:var(--fondo);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;box-shadow:var(--sombra);max-width:90vw}
+.toast.alto{bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.tema{display:flex;gap:6px}
+.tema button{height:36px;padding:0 10px;border-radius:999px;border:1px solid var(--borde-fuerte);background:var(--superficie);font-size:12px;font-weight:600;min-width:44px}
+.tema button[aria-pressed="true"]{background:var(--texto);color:var(--fondo);border-color:var(--texto)}
+@media (prefers-reduced-motion: no-preference){.hoja{animation:sube .18s ease-out}@keyframes sube{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}}
+.cargando{padding:40px 16px;text-align:center;color:var(--texto-suave)}
+</style>
+</head>
+<body>
+<div id="root"><p class="cargando">Cargando Caja del Día…</p></div>
+<noscript>Esta app necesita JavaScript activado.</noscript>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ===================== CALC-START (lógica pura, probada aparte) ===================== */
+const VERSION_DATOS = 1;
+const BASE_POR_DEFECTO = 300000;
+const CONCEPTOS_POR_DEFECTO = ['Pollo', 'Cocacola', 'Verdura', 'Compras', 'Bollo', 'Queso', 'Sueldo', 'Otro'];
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS_SEM = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DIAS_CORTO = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function formatoPesos(n) {
+  const v = Math.round(Number(n) || 0);
+  const s = String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (v < 0 ? '−' : '') + s;
+}
+function leerMonto(texto) {
+  const solo = String(texto ?? '').replace(/\D/g, '').slice(0, 12);
+  return solo ? parseInt(solo, 10) : 0;
+}
+function hoyBogota(ahora = new Date()) {
+  // Colombia es UTC-5 todo el año (sin horario de verano)
+  const t = new Date(ahora.getTime() - 5 * 3600 * 1000);
+  return t.toISOString().slice(0, 10);
+}
+function partesFecha(f) { const [y, m, d] = f.split('-').map(Number); return { y, m, d }; }
+function sumarDias(f, n) {
+  const { y, m, d } = partesFecha(f);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+}
+function diaSemana(f) { const { y, m, d } = partesFecha(f); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }
+function fechaLarga(f) { const { y, m, d } = partesFecha(f); return `${DIAS_SEM[diaSemana(f)]} ${d} ${MESES_CORTO[m - 1]} ${y}`; }
+function fechaCorta(f) { const { m, d } = partesFecha(f); return `${DIAS_CORTO[diaSemana(f)]} ${d} ${MESES_CORTO[m - 1]}`; }
+function mesDe(f) { return f.slice(0, 7); }
+function nombreMes(ym) { const [y, m] = ym.split('-').map(Number); return `${MESES[m - 1].charAt(0).toUpperCase()}${MESES[m - 1].slice(1)} ${y}`; }
+function sumarMeses(ym, n) { const [y, m] = ym.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + n, 1)); return t.toISOString().slice(0, 7); }
+
+/* Modelo del cuaderno: Gastos + Transferencias + Efectivo = Total; Total − Base = Venta del día */
+function cuadre(dia, gastos, transferencias) {
+  const g = gastos.reduce((s, x) => s + (Number(x.monto) || 0), 0);
+  const t = transferencias.reduce((s, x) => s + (Number(x.monto) || 0), 0);
+  const e = Number(dia?.efectivo) || 0;
+  const b = Number(dia?.base) || 0;
+  const total = g + t + e;
+  const venta = total - b;
+  return { gastos: g, transferencias: t, efectivo: e, base: b, total, venta, ganancia: venta - g };
+}
+function resumenDias(db) {
+  return db.dias
+    .map((dia) => {
+      const gs = db.gastos.filter((x) => x.dia_id === dia.id);
+      const ts = db.transferencias.filter((x) => x.dia_id === dia.id);
+      return { dia, gastos: gs, transferencias: ts, ...cuadre(dia, gs, ts) };
+    })
+    .sort((a, b) => (a.dia.fecha < b.dia.fecha ? 1 : -1));
+}
+function consolidar(filas) {
+  const r = filas.reduce((s, f) => ({
+    ventas: s.ventas + f.venta, gastos: s.gastos + f.gastos, transferencias: s.transferencias + f.transferencias,
+    efectivo: s.efectivo + f.efectivo, cerrados: s.cerrados + (f.dia.estado === 'cerrado' ? 1 : 0)
+  }), { ventas: 0, gastos: 0, transferencias: 0, efectivo: 0, cerrados: 0 });
+  r.dias = filas.length;
+  r.saldo = r.ventas - r.gastos;
+  r.promedio = filas.length ? Math.round(r.ventas / filas.length) : 0;
+  return r;
+}
+function gastosPorConcepto(gastos) {
+  const m = new Map();
+  gastos.forEach((g) => m.set(g.concepto, (m.get(g.concepto) || 0) + (Number(g.monto) || 0)));
+  return [...m.entries()].map(([concepto, monto]) => ({ concepto, monto })).sort((a, b) => b.monto - a.monto);
+}
+function baseVacia() {
+  return {
+    version: VERSION_DATOS,
+    config: { base_por_defecto: BASE_POR_DEFECTO, conceptos: CONCEPTOS_POR_DEFECTO.slice() },
+    dias: [], gastos: [], transferencias: []
+  };
+}
+function esDbValida(d) {
+  return !!d && typeof d === 'object' && Array.isArray(d.dias) && Array.isArray(d.gastos) && Array.isArray(d.transferencias)
+    && d.dias.every((x) => x && typeof x.id === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.fecha))
+    && d.gastos.every((x) => x && typeof x.dia_id === 'string' && Number.isFinite(Number(x.monto)))
+    && d.transferencias.every((x) => x && typeof x.dia_id === 'string' && Number.isFinite(Number(x.monto)));
+}
+function normalizarDb(d) {
+  const b = baseVacia();
+  return {
+    version: VERSION_DATOS,
+    config: { ...b.config, ...(d.config || {}) },
+    dias: d.dias, gastos: d.gastos, transferencias: d.transferencias
+  };
+}
+/* ===================== CALC-END ===================== */
+
+/* ===================== Capa de datos (hoy localStorage; mañana Supabase con los mismos nombres) ===================== */
+const LLAVE = 'cajadia:v1';
+function nuevoId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+function ahoraIso() { return new Date().toISOString(); }
+const repo = {
+  cargar() {
+    try {
+      const raw = localStorage.getItem(LLAVE);
+      if (!raw) return baseVacia();
+      const d = JSON.parse(raw);
+      return esDbValida(d) ? normalizarDb(d) : baseVacia();
+    } catch (e) { return baseVacia(); }
+  },
+  guardar(db) {
+    try { localStorage.setItem(LLAVE, JSON.stringify(db)); return true; } catch (e) { return false; }
+  }
+};
+function buscarDia(db, fecha) { return db.dias.find((d) => d.fecha === fecha) || null; }
+function baseSugerida(db, fecha) {
+  const previos = db.dias.filter((d) => d.fecha < fecha).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  return previos.length ? previos[0].base : db.config.base_por_defecto;
+}
+function asegurarDia(db, fecha) {
+  const d = buscarDia(db, fecha);
+  if (d) return [db, d];
+  const nuevo = { id: nuevoId(), fecha, base: baseSugerida(db, fecha), efectivo: 0, estado: 'abierto', cerrado_en: null, creado_en: ahoraIso(), actualizado_en: ahoraIso() };
+  return [{ ...db, dias: [...db.dias, nuevo] }, nuevo];
+}
+function cambiarDia(db, id, cambios) {
+  return { ...db, dias: db.dias.map((d) => (d.id === id ? { ...d, ...cambios, actualizado_en: ahoraIso() } : d)) };
+}
+
+/* ===================== Íconos ===================== */
+const Ico = {
+  izq: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>,
+  der: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>,
+  mas: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>,
+  barras: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
+  hoja: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3h8l4 4v14H4V3h4zM8 12h8M8 16h5"/></svg>,
+  bajar: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>,
+  subir: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>
+};
+
+/* ===================== Componentes ===================== */
+function CampoPesos({ id, etiqueta, valor, onCambio, disabled, grande, placeholder, ocultarEtiqueta }) {
+  const [texto, setTexto] = useState(valor ? formatoPesos(valor) : '');
+  useEffect(() => { setTexto(valor ? formatoPesos(valor) : ''); }, [valor]);
+  return (
+    <>
+      <label htmlFor={id} className={ocultarEtiqueta ? 'sr' : 'etq'}>{etiqueta}</label>
+      <input
+        id={id} className={'entrada' + (grande ? ' grande' : '')} inputMode="numeric" autoComplete="off"
+        placeholder={placeholder} value={texto} disabled={disabled}
+        onChange={(e) => { const n = leerMonto(e.target.value); setTexto(n ? formatoPesos(n) : ''); onCambio && onCambio(n); }}
+      />
+    </>
+  );
+}
+
+function HojaEditar({ item, tipo, conceptos, onGuardar, onBorrar, onCerrar }) {
+  const [monto, setMonto] = useState(item.monto);
+  const [concepto, setConcepto] = useState(item.concepto || '');
+  const [confirmar, setConfirmar] = useState(false);
+  const refHoja = useRef(null);
+  useEffect(() => { const el = refHoja.current && refHoja.current.querySelector('input'); el && el.focus(); }, []);
+  const titulo = tipo === 'gasto' ? 'Editar gasto' : 'Editar transferencia';
+  return (
+    <div className="velo" onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
+      <div className="hoja" role="dialog" aria-modal="true" aria-labelledby="tit-hoja" ref={refHoja}
+        onKeyDown={(e) => { if (e.key === 'Escape') onCerrar(); }}>
+        <div className="fila-tit">
+          <h2 className="h2" id="tit-hoja">{titulo}</h2>
+          <button className="btn-link" onClick={onCerrar}>Cancelar</button>
+        </div>
+        {tipo === 'gasto' && (
+          <div className="chips" role="group" aria-label="Concepto">
+            {conceptos.map((c) => (
+              <button key={c} className="chip" aria-pressed={concepto === c} onClick={() => setConcepto(c)}>{c}</button>
+            ))}
+          </div>
+        )}
+        <CampoPesos id="monto-edit" etiqueta="Valor" valor={monto} onCambio={setMonto} grande />
+        <div className="hoja-acciones">
+          <button className={'btn-borrar' + (confirmar ? ' confirmar' : '')}
+            onClick={() => (confirmar ? onBorrar() : setConfirmar(true))}>
+            {confirmar ? 'Toca otra vez para borrar' : 'Borrar'}
+          </button>
+          <button className="btn-prim" disabled={!monto} onClick={() => onGuardar({ monto, concepto })}>Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PantallaRegistro({ db, fecha, setFecha, hoy, acciones }) {
+  const dia = buscarDia(db, fecha);
+  const gastos = dia ? db.gastos.filter((g) => g.dia_id === dia.id) : [];
+  const transfers = dia ? db.transferencias.filter((t) => t.dia_id === dia.id) : [];
+  const c = cuadre(dia || { base: baseSugerida(db, fecha), efectivo: 0 }, gastos, transfers);
+  const cerrado = dia && dia.estado === 'cerrado';
+  const conceptos = db.config.conceptos;
+  const [concepto, setConcepto] = useState(conceptos[0]);
+  const [detalle, setDetalle] = useState('');
+  const [montoG, setMontoG] = useState(0);
+  const [montoT, setMontoT] = useState(0);
+  const [editando, setEditando] = useState(null);
+  const [llaveG, setLlaveG] = useState(0);
+  const [llaveT, setLlaveT] = useState(0);
+
+  const agregarGasto = (e) => {
+    e.preventDefault();
+    if (!montoG) { acciones.aviso('Escribe el valor del gasto'); return; }
+    const nombre = concepto === 'Otro' && detalle.trim() ? detalle.trim().slice(0, 40) : concepto;
+    acciones.agregarGasto(fecha, nombre, montoG);
+    setMontoG(0); setDetalle(''); setLlaveG((k) => k + 1);
+  };
+  const agregarTransf = (e) => {
+    e.preventDefault();
+    if (!montoT) { acciones.aviso('Escribe el valor de la transferencia'); return; }
+    acciones.agregarTransferencia(fecha, montoT);
+    setMontoT(0); setLlaveT((k) => k + 1);
+  };
+
+  return (
+    <div className="pantalla con-cuadre">
+      <header className="cab">
+        <button className="btn-icono" aria-label="Día anterior" onClick={() => setFecha(sumarDias(fecha, -1))}>{Ico.izq}</button>
+        <div className="cab-centro">
+          <h1 className="cab-titulo">{fecha === hoy ? 'Hoy, ' : ''}{fechaCorta(fecha)}</h1>
+          <div className="cab-sub">{cerrado ? 'Día cerrado' : 'Día abierto'}</div>
+        </div>
+        <button className="btn-icono" aria-label="Día siguiente" disabled={fecha >= hoy} onClick={() => setFecha(sumarDias(fecha, 1))}>{Ico.der}</button>
+      </header>
+
+      <div className="pila">
+        <div className="dos">
+          <div className="caja campo-caja">
+            <CampoPesos id="base" etiqueta="Base" valor={c.base} disabled={cerrado} grande
+              onCambio={(n) => acciones.cambiarCampo(fecha, { base: n })} />
+          </div>
+          <div className="caja campo-caja">
+            <CampoPesos id="efectivo" etiqueta="Efectivo en caja" valor={c.efectivo} disabled={cerrado} grande placeholder="0"
+              onCambio={(n) => acciones.cambiarCampo(fecha, { efectivo: n })} />
+          </div>
+        </div>
+
+        <section className="caja pila" aria-labelledby="tit-gastos">
+          <div className="fila-tit">
+            <h2 className="h2" id="tit-gastos">Gastos</h2>
+            <span className="total-gasto">{formatoPesos(c.gastos)}</span>
+          </div>
+          {!cerrado && (
+            <>
+              <div className="chips" role="group" aria-label="Concepto del gasto">
+                {conceptos.map((n) => (
+                  <button key={n} type="button" className="chip" aria-pressed={concepto === n} onClick={() => setConcepto(n)}>{n}</button>
+                ))}
+              </div>
+              {concepto === 'Otro' && (
+                <>
+                  <label htmlFor="detalle" className="sr">Qué fue el gasto</label>
+                  <input id="detalle" className="entrada" placeholder="¿Qué fue? (opcional)" maxLength={40} value={detalle} onChange={(e) => setDetalle(e.target.value)} />
+                </>
+              )}
+              <form className="agregar" onSubmit={agregarGasto}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <CampoPesos key={llaveG} id="monto-gasto" etiqueta="Valor del gasto" ocultarEtiqueta valor={montoG} onCambio={setMontoG} placeholder={`Valor de ${concepto}`} />
+                </div>
+                <button type="submit" className="btn-mas gasto" aria-label="Agregar gasto">{Ico.mas}</button>
+              </form>
+            </>
+          )}
+          {gastos.length ? (
+            <div className="dos-apretado">
+              {gastos.map((g) => (
+                <button key={g.id} className="item gasto" disabled={cerrado} aria-label={`${g.concepto} ${formatoPesos(g.monto)}. Editar o borrar`}
+                  onClick={() => setEditando({ tipo: 'gasto', item: g })}>
+                  <span className="item-nom">{g.concepto}</span>
+                  <span className="item-val">{formatoPesos(g.monto)}</span>
+                </button>
+              ))}
+            </div>
+          ) : <p className="vacio-mini">Todavía no hay gastos. Escoge el concepto, escribe el valor y toca +.</p>}
+          {gastos.length > 0 && !cerrado && <p className="ayuda">Toca un gasto para editarlo o borrarlo</p>}
+        </section>
+
+        <section className="caja pila" aria-labelledby="tit-transf">
+          <div className="fila-tit">
+            <h2 className="h2" id="tit-transf">Transferencias</h2>
+            <span className="total-transf">{formatoPesos(c.transferencias)}</span>
+          </div>
+          {!cerrado && (
+            <form className="agregar" onSubmit={agregarTransf}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <CampoPesos key={llaveT} id="monto-transf" etiqueta="Valor de la transferencia" ocultarEtiqueta valor={montoT} onCambio={setMontoT} placeholder="Valor recibido" />
+              </div>
+              <button type="submit" className="btn-mas transf" aria-label="Agregar transferencia">{Ico.mas}</button>
+            </form>
+          )}
+          {transfers.length ? (
+            <div className="dos-apretado">
+              {transfers.map((t, i) => (
+                <button key={t.id} className="item transf" disabled={cerrado} aria-label={`Transferencia ${i + 1} ${formatoPesos(t.monto)}. Editar o borrar`}
+                  onClick={() => setEditando({ tipo: 'transf', item: t })}>
+                  <span className="item-nom">Transf. {i + 1}</span>
+                  <span className="item-val">{formatoPesos(t.monto)}</span>
+                </button>
+              ))}
+            </div>
+          ) : <p className="vacio-mini">Sin transferencias este día.</p>}
+        </section>
+      </div>
+
+      {editando && (
+        <HojaEditar
+          item={editando.item} tipo={editando.tipo} conceptos={conceptos}
+          onCerrar={() => setEditando(null)}
+          onBorrar={() => { acciones.borrar(editando.tipo, editando.item.id); setEditando(null); }}
+          onGuardar={(cambios) => { acciones.editar(editando.tipo, editando.item.id, cambios); setEditando(null); }}
+        />
+      )}
+
+    </div>
+  );
+}
+
+function cuadreDeFecha(db, fecha) {
+  const dia = buscarDia(db, fecha);
+  const gastos = dia ? db.gastos.filter((g) => g.dia_id === dia.id) : [];
+  const transfers = dia ? db.transferencias.filter((t) => t.dia_id === dia.id) : [];
+  return { c: cuadre(dia || { base: baseSugerida(db, fecha), efectivo: 0 }, gastos, transfers), cerrado: !!dia && dia.estado === 'cerrado' };
+}
+
+function PieCuadre({ c, cerrado, onCerrar, onReabrir }) {
+  return (
+    <section className="cuadre" aria-label="Cuadre del día" id="cuadre">
+      <div className="cuadre-formula">G {formatoPesos(c.gastos)} + T {formatoPesos(c.transferencias)} + E {formatoPesos(c.efectivo)} − B {formatoPesos(c.base)}</div>
+      <div className="cuadre-fila">
+        <div>
+          <span className="cuadre-etq">Venta del día</span>
+          <span className="cuadre-venta" aria-live="polite">{formatoPesos(c.venta)}</span>
+        </div>
+        {cerrado
+          ? <button className="btn-reabrir" onClick={onReabrir}>Reabrir día</button>
+          : <button className="btn-cierre" onClick={onCerrar}>Cerrar día</button>}
+      </div>
+    </section>
+  );
+}
+
+function PantallaHoy({ db, fecha, hoy, irA }) {
+  const dia = buscarDia(db, fecha);
+  const gastos = dia ? db.gastos.filter((g) => g.dia_id === dia.id) : [];
+  const transfers = dia ? db.transferencias.filter((t) => t.dia_id === dia.id) : [];
+  const c = cuadre(dia, gastos, transfers);
+  const porConcepto = gastosPorConcepto(gastos);
+  const max = porConcepto.length ? porConcepto[0].monto : 1;
+  const entro = c.efectivo + c.transferencias;
+  const pctE = entro ? (c.efectivo / entro) * 100 : 0;
+  const vacio = !dia || (!gastos.length && !transfers.length && !c.efectivo);
+  return (
+    <div className="pantalla">
+      <header className="cab-simple">
+        <h1 className="cab-titulo">{fecha === hoy ? 'Hoy' : 'Resumen del día'}</h1>
+        <span className="cab-sub" style={{ fontSize: 14 }}>{fechaLarga(fecha)}</span>
+      </header>
+      {vacio ? (
+        <div className="caja vacio">
+          <p>Todavía no hay movimientos en este día.</p>
+          <button className="btn-prim" onClick={() => irA('registro')}>Registrar movimientos</button>
+        </div>
+      ) : (
+        <div className="pila">
+          <section className="hero">
+            <div><span className="hero-etq">Venta del día</span><span className="hero-num">{formatoPesos(c.venta)}</span></div>
+            <div className="hero-der"><span className="hero-etq">Ganancia</span><span className="hero-sec">{formatoPesos(c.ganancia)}</span></div>
+          </section>
+          <div className="dos" style={{ gap: 8 }}>
+            <div className="mini"><span className="mini-etq">Gastos</span><span className="mini-val c-gasto">{formatoPesos(c.gastos)}</span></div>
+            <div className="mini"><span className="mini-etq">Transf.</span><span className="mini-val c-transf">{formatoPesos(c.transferencias)}</span></div>
+            <div className="mini"><span className="mini-etq">Efectivo</span><span className="mini-val">{formatoPesos(c.efectivo)}</span></div>
+            <div className="mini"><span className="mini-etq">Base</span><span className="mini-val">{formatoPesos(c.base)}</span></div>
+          </div>
+          <section className="caja pila" style={{ gap: 8 }}>
+            <h2 className="h2" style={{ fontSize: 15 }}>¿En qué se fue la plata?</h2>
+            {porConcepto.length ? porConcepto.map((p) => (
+              <div className="barra-fila" key={p.concepto}>
+                <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.concepto}</span>
+                <div className="barra-fondo"><div className="barra" style={{ width: `${(p.monto / max) * 100}%` }} /></div>
+                <span style={{ fontWeight: 700, textAlign: 'right' }}>{formatoPesos(p.monto)}</span>
+              </div>
+            )) : <p className="vacio-mini">Sin gastos este día.</p>}
+          </section>
+          <section className="caja pila" style={{ gap: 8 }}>
+            <h2 className="h2" style={{ fontSize: 15 }}>¿Cómo entró la plata?</h2>
+            <div className="mezcla" role="img" aria-label={`Efectivo ${Math.round(pctE)} por ciento, transferencias ${Math.round(100 - pctE)} por ciento`}>
+              <div style={{ width: `${pctE}%`, background: 'var(--texto)' }} />
+              <div style={{ width: `${entro ? 100 - pctE : 0}%`, background: 'var(--barra-transf)' }} />
+            </div>
+            <div className="leyenda">
+              <span><span className="punto" style={{ background: 'var(--texto)' }} />Efectivo {formatoPesos(c.efectivo)}</span>
+              <span><span className="punto" style={{ background: 'var(--barra-transf)' }} />Transf. {formatoPesos(c.transferencias)}</span>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Cuaderno({ f }) {
+  return (
+    <div className="cuaderno">
+      {f.gastos.length > 0 && (
+        <div className="dos" style={{ columnGap: 14, rowGap: 4 }}>
+          {f.gastos.map((g) => <div className="l" key={g.id} style={{ fontSize: 13 }}><span>{g.concepto}</span><strong>{formatoPesos(g.monto)}</strong></div>)}
+        </div>
+      )}
+      <div className="l sep"><span>Gastos</span><strong className="c-gasto">{formatoPesos(f.gastos.reduce((s, g) => s + g.monto, 0))}</strong></div>
+      <div className="l"><span>+ Transferencias</span><strong>{formatoPesos(f.transferencias.reduce((s, t) => s + t.monto, 0))}</strong></div>
+      <div className="l"><span>+ Efectivo</span><strong>{formatoPesos(f.efectivo)}</strong></div>
+      <div className="l"><span>= Total</span><strong>{formatoPesos(f.total)}</strong></div>
+      <div className="l"><span>− Base</span><strong>{formatoPesos(f.base)}</strong></div>
+      <div className="l fin"><strong>Venta del día</strong><strong className="c-prim" style={{ fontSize: 22 }}>{formatoPesos(f.venta)}</strong></div>
+    </div>
+  );
+}
+
+function PantallaReportes({ db, hoy, abrirDia, acciones }) {
+  const [tab, setTab] = useState('dia');
+  const [mes, setMes] = useState(mesDe(hoy));
+  const [abierto, setAbierto] = useState(null);
+  const refArchivo = useRef(null);
+  const filas = useMemo(() => resumenDias(db), [db]);
+  const delMes = filas.filter((f) => mesDe(f.dia.fecha) === mes);
+  const rMes = consolidar(delMes);
+  const rTotal = consolidar(filas);
+  const meses = useMemo(() => {
+    const m = new Map();
+    filas.forEach((f) => { const k = mesDe(f.dia.fecha); m.set(k, [...(m.get(k) || []), f]); });
+    return [...m.entries()].map(([k, fs]) => ({ mes: k, ...consolidar(fs) }));
+  }, [filas]);
+  const primero = filas.length ? filas[filas.length - 1].dia.fecha : null;
+  const tabs = [['dia', 'Por día'], ['mes', 'Por mes'], ['total', 'Total']];
+
+  const filaDia = (f) => (
+    <div key={f.dia.id}>
+      <button className="fila-dia" aria-expanded={abierto === f.dia.id} onClick={() => setAbierto(abierto === f.dia.id ? null : f.dia.id)}>
+        <span><strong>{fechaCorta(f.dia.fecha)}</strong><small>Gastos {formatoPesos(f.gastos)}{f.dia.estado === 'abierto' ? ' · abierto' : ''}</small></span>
+        <strong className="c-prim" style={{ fontSize: 15 }}>{formatoPesos(f.venta)}</strong>
+      </button>
+      {abierto === f.dia.id && (
+        <div style={{ padding: '4px 0 12px' }} className="pila">
+          <Cuaderno f={f} />
+          <button className="btn-link" style={{ alignSelf: 'flex-start' }} onClick={() => abrirDia(f.dia.fecha)}>Abrir en Registro</button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="pantalla">
+      <header className="pila" style={{ padding: '16px 0 10px' }}>
+        <h1 className="cab-titulo" style={{ padding: '0 4px' }}>Reportes</h1>
+        <div className="tabs" role="tablist" aria-label="Tipo de reporte">
+          {tabs.map(([id, n]) => <button key={id} role="tab" className="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{n}</button>)}
+        </div>
+      </header>
+
+      {!filas.length ? (
+        <div className="caja vacio"><p>Aún no hay días registrados. Cuando ella cierre el primer día, aquí sale el reporte.</p></div>
+      ) : (
+        <div className="pila">
+          {tab === 'dia' && (
+            <section className="caja" style={{ padding: '4px 14px' }} aria-label="Días registrados">
+              {filas.map(filaDia)}
+            </section>
+          )}
+
+          {tab === 'mes' && (
+            <>
+              <div className="cab" style={{ padding: 0 }}>
+                <button className="btn-icono" aria-label="Mes anterior" onClick={() => { setMes(sumarMeses(mes, -1)); setAbierto(null); }}>{Ico.izq}</button>
+                <h2 className="h2">{nombreMes(mes)}</h2>
+                <button className="btn-icono" aria-label="Mes siguiente" disabled={mes >= mesDe(hoy)} onClick={() => { setMes(sumarMeses(mes, 1)); setAbierto(null); }}>{Ico.der}</button>
+              </div>
+              {delMes.length ? (
+                <>
+                  <section className="hero">
+                    <div><span className="hero-etq">Ventas del mes</span><span className="hero-num" style={{ fontSize: 28 }}>{formatoPesos(rMes.ventas)}</span></div>
+                    <div className="hero-der" style={{ fontSize: 12 }}>{rMes.dias} {rMes.dias === 1 ? 'día' : 'días'} · {rMes.cerrados} cerrados<br />prom. {formatoPesos(rMes.promedio)}</div>
+                  </section>
+                  <div className="dos" style={{ gap: 8 }}>
+                    <div className="mini"><span className="mini-etq">Gastos</span><span className="mini-val c-gasto">{formatoPesos(rMes.gastos)}</span></div>
+                    <div className="mini"><span className="mini-etq">Saldo</span><span className="mini-val c-prim">{formatoPesos(rMes.saldo)}</span></div>
+                    <div className="mini"><span className="mini-etq">Transf.</span><span className="mini-val c-transf">{formatoPesos(rMes.transferencias)}</span></div>
+                    <div className="mini"><span className="mini-etq">Efectivo</span><span className="mini-val">{formatoPesos(rMes.efectivo)}</span></div>
+                  </div>
+                  <section className="caja" style={{ padding: '4px 14px' }} aria-label="Días del mes">{delMes.map(filaDia)}</section>
+                </>
+              ) : <div className="caja vacio"><p>No hay días registrados en {nombreMes(mes).toLowerCase()}.</p></div>}
+            </>
+          )}
+
+          {tab === 'total' && (
+            <>
+              <p className="cab-sub" style={{ margin: 0, padding: '0 4px', fontSize: 13 }}>Desde el {fechaLarga(primero).toLowerCase()} · {rTotal.dias} {rTotal.dias === 1 ? 'día' : 'días'}</p>
+              <section className="caja cuaderno" style={{ padding: '14px 16px', gap: 10 }}>
+                <div className="l" style={{ alignItems: 'baseline' }}><strong>Ingresos (ventas)</strong><strong className="c-transf" style={{ fontSize: 20 }}>{formatoPesos(rTotal.ventas)}</strong></div>
+                <div className="l" style={{ alignItems: 'baseline' }}><strong>Gastos</strong><strong className="c-gasto" style={{ fontSize: 20 }}>{formatoPesos(rTotal.gastos)}</strong></div>
+                <div className="l fin"><strong>Saldo</strong><strong className="c-prim" style={{ fontSize: 26 }}>{formatoPesos(rTotal.saldo)}</strong></div>
+              </section>
+              <section className="caja" style={{ padding: '4px 14px' }} aria-label="Por mes">
+                {meses.map((m) => (
+                  <button key={m.mes} className="fila-dia" onClick={() => { setMes(m.mes); setTab('mes'); }}>
+                    <span><strong>{nombreMes(m.mes)}</strong><small>Ventas {formatoPesos(m.ventas)} · Gastos {formatoPesos(m.gastos)}</small></span>
+                    <strong className="c-prim">{formatoPesos(m.saldo)}</strong>
+                  </button>
+                ))}
+              </section>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="pila" style={{ marginTop: 12 }}>
+        <div className="dos">
+          <button className="btn-sec" onClick={acciones.descargarRespaldo}>{Ico.bajar}Descargar respaldo</button>
+          <button className="btn-sec" onClick={() => refArchivo.current && refArchivo.current.click()}>{Ico.subir}Cargar respaldo</button>
+        </div>
+        <input ref={refArchivo} type="file" accept="application/json,.json" className="sr" aria-label="Archivo de respaldo"
+          onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) acciones.cargarRespaldo(f); e.target.value = ''; }} />
+        <Tema />
+        <div className="firma">Synaptix AI Labs — Programando con Sistemas Inteligentes</div>
+      </div>
+    </div>
+  );
+}
+
+function Tema() {
+  const leer = () => { try { return localStorage.getItem('cajadia:tema') || 'auto'; } catch (e) { return 'auto'; } };
+  const [tema, setTema] = useState(leer);
+  useEffect(() => {
+    const r = document.documentElement;
+    if (tema === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', tema);
+    try { localStorage.setItem('cajadia:tema', tema); } catch (e) {}
+  }, [tema]);
+  return (
+    <div className="fila-tit" style={{ alignItems: 'center' }}>
+      <span className="etq">Apariencia</span>
+      <div className="tema" role="group" aria-label="Apariencia">
+        {[['auto', 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => (
+          <button key={v} aria-pressed={tema === v} onClick={() => setTema(v)}>{n}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [db, setDb] = useState(() => repo.cargar());
+  const [hoy, setHoy] = useState(hoyBogota());
+  const [fecha, setFecha] = useState(hoyBogota());
+  const [vista, setVista] = useState('registro');
+  const [toast, setToast] = useState('');
+  const refToast = useRef(null);
+
+  useEffect(() => {
+    // Si la app queda abierta pasada la medianoche, mover "hoy"
+    const t = setInterval(() => { const h = hoyBogota(); setHoy((prev) => (prev !== h ? h : prev)); }, 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const aviso = (m) => {
+    setToast(m);
+    clearTimeout(refToast.current);
+    refToast.current = setTimeout(() => setToast(''), 2400);
+  };
+  const aplicar = (fn) => {
+    setDb((prev) => {
+      const next = fn(prev);
+      if (next !== prev && !repo.guardar(next)) aviso('No se pudo guardar en el celular. Descarga un respaldo.');
+      return next;
+    });
+  };
+
+  const acciones = {
+    aviso,
+    cambiarCampo: (f, cambios) => aplicar((d) => { const [d2, dia] = asegurarDia(d, f); return cambiarDia(d2, dia.id, cambios); }),
+    agregarGasto: (f, concepto, monto) => {
+      aplicar((d) => { const [d2, dia] = asegurarDia(d, f); return { ...d2, gastos: [...d2.gastos, { id: nuevoId(), dia_id: dia.id, concepto, monto, creado_en: ahoraIso() }] }; });
+      aviso(`Gasto agregado: ${concepto} ${formatoPesos(monto)}`);
+    },
+    agregarTransferencia: (f, monto) => {
+      aplicar((d) => { const [d2, dia] = asegurarDia(d, f); return { ...d2, transferencias: [...d2.transferencias, { id: nuevoId(), dia_id: dia.id, monto, nota: '', creado_en: ahoraIso() }] }; });
+      aviso(`Transferencia agregada: ${formatoPesos(monto)}`);
+    },
+    editar: (tipo, id, cambios) => {
+      const tabla = tipo === 'gasto' ? 'gastos' : 'transferencias';
+      aplicar((d) => ({ ...d, [tabla]: d[tabla].map((x) => (x.id === id ? { ...x, monto: cambios.monto, ...(tipo === 'gasto' ? { concepto: cambios.concepto || x.concepto } : {}) } : x)) }));
+      aviso('Cambios guardados');
+    },
+    borrar: (tipo, id) => {
+      const tabla = tipo === 'gasto' ? 'gastos' : 'transferencias';
+      aplicar((d) => ({ ...d, [tabla]: d[tabla].filter((x) => x.id !== id) }));
+      aviso(tipo === 'gasto' ? 'Gasto borrado' : 'Transferencia borrada');
+    },
+    cerrarDia: (f) => {
+      const dia = buscarDia(db, f);
+      if (!dia || !dia.efectivo) { aviso('Escribe el efectivo en caja antes de cerrar el día'); return; }
+      aplicar((d) => cambiarDia(d, dia.id, { estado: 'cerrado', cerrado_en: ahoraIso() }));
+      aviso('Día cerrado');
+    },
+    reabrirDia: (f) => {
+      const dia = buscarDia(db, f);
+      if (!dia) return;
+      aplicar((d) => cambiarDia(d, dia.id, { estado: 'abierto', cerrado_en: null }));
+      aviso('Día reabierto');
+    },
+    descargarRespaldo: () => {
+      try {
+        const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `caja-del-dia-respaldo-${hoyBogota()}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        aviso('Respaldo descargado');
+      } catch (e) { aviso('No se pudo descargar el respaldo'); }
+    },
+    cargarRespaldo: (archivo) => {
+      if (archivo.size > 5 * 1024 * 1024) { aviso('Ese archivo es muy grande para ser un respaldo'); return; }
+      const lector = new FileReader();
+      lector.onload = () => {
+        try {
+          const d = JSON.parse(String(lector.result));
+          if (!esDbValida(d)) { aviso('Ese archivo no es un respaldo de Caja del Día'); return; }
+          if (!window.confirm('Esto reemplaza todos los datos de este celular por los del respaldo. ¿Continuar?')) return;
+          const limpio = normalizarDb(d);
+          setDb(limpio);
+          if (!repo.guardar(limpio)) aviso('No se pudo guardar el respaldo cargado');
+          else aviso('Respaldo cargado');
+        } catch (e) { aviso('No se pudo leer el archivo'); }
+      };
+      lector.readAsText(archivo);
+    }
+  };
+
+  const irA = (v) => { setVista(v); window.scrollTo(0, 0); };
+
+  return (
+    <div className="app">
+      {vista === 'registro' && <PantallaRegistro db={db} fecha={fecha} setFecha={setFecha} hoy={hoy} acciones={acciones} />}
+      {vista === 'hoy' && <PantallaHoy db={db} fecha={fecha} hoy={hoy} irA={irA} />}
+      {vista === 'reportes' && <PantallaReportes db={db} hoy={hoy} acciones={acciones} abrirDia={(f) => { setFecha(f); irA('registro'); }} />}
+
+      <div className="abajo">
+        <div className="abajo-in">
+          {vista === 'registro' && (() => { const q = cuadreDeFecha(db, fecha); return (
+            <PieCuadre c={q.c} cerrado={q.cerrado} onCerrar={() => acciones.cerrarDia(fecha)} onReabrir={() => acciones.reabrirDia(fecha)} />
+          ); })()}
+          <nav className="nav" aria-label="Navegación">
+            <button aria-current={vista === 'registro' ? 'page' : undefined} onClick={() => irA('registro')}>{Ico.mas}Registro</button>
+            <button aria-current={vista === 'hoy' ? 'page' : undefined} onClick={() => irA('hoy')}>{Ico.barras}{fecha === hoy ? 'Hoy' : 'Día'}</button>
+            <button aria-current={vista === 'reportes' ? 'page' : undefined} onClick={() => irA('reportes')}>{Ico.hoja}Reportes</button>
+          </nav>
+        </div>
+      </div>
+      {toast && <div className={'toast' + (vista === 'registro' ? '' : ' alto')} role="status">{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+if ('serviceWorker' in navigator && (location.hostname.endsWith('github.io') || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
