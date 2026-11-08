@@ -1,0 +1,19 @@
+{
+  "name": "cuadrao",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Cuadrao: registro de gastos e ingresos y cuadre de caja (PWA)",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "node scripts/prueba.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/manrope": "5.2.8",
+    "esbuild": "0.25.10",
+    "playwright-core": "1.56.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "sharp": "0.34.4"
+  }
+}
