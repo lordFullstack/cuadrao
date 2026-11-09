@@ -1,7 +1,7 @@
 // Prueba de punta a punta en un Chromium real (con el servidor de `npm run serve` arriba).
 //   npm run build && npm run serve   (en otra terminal)
 //   npm test
-// Revisa: datos viejos de "Caja del Día", bienvenida, reportes, imagen compartible,
+// Revisa: registro rápido (Por anotar, Anotados hoy, transferencias, cuadre), datos viejos de "Caja del Día", bienvenida, reportes, imagen compartible,
 // copia de seguridad y que abra sin internet. Deja capturas en prueba-salida/.
 import { chromium } from 'playwright-core';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -30,6 +30,7 @@ const page = await ctx.newPage();
 const errores = [];
 page.on('pageerror', (e) => errores.push(e.message));
 const foto = (n) => page.screenshot({ path: join(salida, n + '.png') });
+const formatoLocal = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const sinSplash = () => page.waitForSelector('#splash', { state: 'detached', timeout: 4000 });
 
 // 1) Usuario nuevo: bienvenida completa
@@ -57,25 +58,96 @@ await page.waitForSelector('.hero');
 ok((await page.locator('.marca-negocio').innerText()) === 'Asadero Doña Rosa', 'El nombre del negocio sale arriba');
 await foto('05-hoy-ejemplo');
 
-// 2) Registro de hoy
+// 2) Registro rápido de hoy
 await page.getByRole('button', { name: 'Registro' }).click();
 await page.getByRole('button', { name: 'Día siguiente' }).click();
 ok(await page.locator('.aviso.ejemplo').isVisible(), 'Aviso del día de ejemplo visible');
-ok((await page.getByLabel('Base', { exact: true }).inputValue()) === '150.000', 'Hoy arranca con la base de la bienvenida');
-await page.getByLabel('Valor del gasto').fill('20000');
-await page.getByRole('button', { name: 'Agregar gasto' }).click();
-await page.getByLabel('Valor de la transferencia').fill('50000');
-await page.getByRole('button', { name: 'Agregar transferencia' }).click();
+const num = (t) => parseInt(String(t).replace(/\D/g, ''), 10) || 0;
+const BASE = 150000;
+ok((await page.locator('.saldo-base').innerText()).includes('Base 150.000'), 'Hoy arranca con la base de la bienvenida (línea de base)');
+ok((await page.locator('.saldo-num').innerText()) === '—', 'Sin efectivo, el saldo muestra "—"');
+const filas0 = await page.locator('.pa-fila .pa-nombre').allInnerTexts();
+ok(filas0.join() === 'Carnes y pollo,Verduras,Bebidas,Desechables,Sueldos,Hielo' && (await page.locator('.pa-fila').count()) === filas0.length + 1,
+  `Por anotar sale completa (${filas0.length} conceptos + fila Otro)`);
+// Base: se abre desde la línea del saldo
+await page.locator('.saldo-base').click();
+ok((await page.getByLabel('Base', { exact: true }).inputValue()) === '150.000', 'La hoja "Base de hoy" muestra la base de la bienvenida');
+await page.getByRole('button', { name: 'Listo' }).click();
+
+// Anotar con ✓: sale de Por anotar y aparece en Anotados hoy
+await page.getByLabel('Valor de Carnes y pollo').fill('20000');
+await page.getByRole('button', { name: 'Anotar Carnes y pollo' }).click();
+ok((await page.locator('.pa-fila .pa-nombre').allInnerTexts()).join() === 'Verduras,Bebidas,Desechables,Sueldos,Hielo', 'Anotar con ✓ saca el concepto de Por anotar');
+const reng = () => page.locator('.anot').filter({ hasText: 'Carnes y pollo' });
+ok((await reng().locator('.anot-total').innerText()) === '20.000' && !(await reng().locator('.pastilla').count()), 'Aparece en Anotados hoy con su valor (20.000)');
+// Sumar otra vez al mismo concepto
+await page.getByRole('button', { name: 'Sumar otro valor a Carnes y pollo' }).click();
+await page.getByLabel('Sumar otra vez').fill('10000');
+await page.getByRole('button', { name: 'Sumar', exact: true }).click();
+ok((await reng().locator('.anot-total').innerText()) === '30.000' && (await reng().locator('.pastilla').innerText()) === '2 veces'
+  && (await reng().locator('.anot-det').innerText()) === '20.000 + 10.000', 'Sumar otra vez: 20.000 + 10.000 = 30.000 y "2 veces"');
+// Tocar el renglón despliega los gastos individuales
+await reng().locator('.anot-main').click();
+ok((await reng().locator('.item.gasto').count()) === 2, 'Tocar el renglón muestra los gastos individuales');
+// Otro: se guarda con el texto escrito y la fila se queda
+await page.getByLabel('¿Qué fue?').fill('Hielo seco');
+await page.getByLabel('Valor de Otro').fill('5000');
+await page.getByRole('button', { name: 'Anotar Otro' }).click();
+ok((await page.locator('.anot').filter({ hasText: 'Hielo seco' }).count()) === 1 && (await page.getByLabel('Valor de Otro').count()) === 1, 'Otro se anota con lo escrito y la fila se queda');
+ok((await page.locator('.anot .anot-nom').first().innerText()) === 'Hielo seco', 'El último anotado va arriba');
+const GASTOS = 35000;
+
+// Transferencias: dos desde la hoja (el efectivo se pone antes para que las capturas salgan con datos)
 await page.getByLabel('Efectivo en caja').fill('300000');
-ok((await page.locator('.cuadre-venta').innerText()) === '220.000', 'Cuadre: 20.000 + 50.000 + 300.000 − 150.000 = 220.000');
-await foto('06-registro');
+await page.getByRole('button', { name: 'Sumar transferencia' }).click();
+await page.getByLabel('Valor de la transferencia').fill('30000');
+await page.getByRole('button', { name: 'Agregar transferencia' }).click();
+await page.getByLabel('Valor de la transferencia').fill('20000');
+await page.getByRole('button', { name: 'Agregar transferencia' }).click();
+ok((await page.locator('.hoja .item.transf').count()) === 2 && (await page.locator('.fila-total strong').innerText()) === '50.000', 'Hoja de transferencias: dos transferencias, total del día 50.000');
+await page.waitForSelector('.toast', { state: 'detached', timeout: 5000 });
+await foto('06b-registro-hoja-transferencias');
+await page.locator('.hoja .item.transf').first().click();
+ok(await page.getByRole('heading', { name: 'Editar transferencia' }).isVisible(), 'Tocar una transferencia abre editar/borrar');
+await page.getByRole('button', { name: 'Cancelar' }).click();
+await page.getByRole('button', { name: 'Listo' }).click();
+ok((await page.locator('.transf-total').innerText()) === '50.000' && (await page.locator('.transf-sub').innerText()) === '2 recibidas', 'La casilla Transferencias muestra 50.000 y "2 recibidas"');
+
+// Cuadre con la fórmula del cuaderno
+const EFECTIVO = 300000, TRANSF = 50000;
+ok(num(await page.locator('.cuadre-venta').innerText()) === GASTOS + TRANSF + EFECTIVO - BASE, `Venta = gastos + transf + efectivo − base = ${formatoLocal(GASTOS + TRANSF + EFECTIVO - BASE)}`);
+ok(num(await page.locator('.saldo-num').innerText()) === EFECTIVO + TRANSF - BASE, `Saldo = efectivo + transf − base = ${formatoLocal(EFECTIVO + TRANSF - BASE)}`);
+ok((await page.locator('#tit-anotados + .total-gasto').innerText()) === '35.000', 'Total de gastos arriba de Anotados hoy: 35.000');
+await page.waitForSelector('.toast', { state: 'detached', timeout: 5000 });
+await foto('06-registro-con-datos');
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await page.waitForTimeout(150);
+const pegado = await page.evaluate(() => Math.round(document.querySelector('.fijo').getBoundingClientRect().top));
+ok(pegado === 0 && (await page.evaluate(() => window.scrollY)) > 0, 'El bloque de arriba se queda fijo al desplazarse');
+await foto('06c-registro-abajo');
+await page.emulateMedia({ colorScheme: 'dark' });
+await page.evaluate(() => window.scrollTo(0, 0));
+await foto('06d-registro-oscuro');
+await page.emulateMedia({ colorScheme: 'light' });
+
+// Cerrar y reabrir el día
+await page.getByRole('button', { name: 'Cerrar día' }).click();
+ok((await page.locator('.cab-sub').innerText()) === 'Día cerrado' && !(await page.locator('#tit-por-anotar').count()) && !(await page.getByRole('button', { name: 'Sumar transferencia' }).count()),
+  'Cerrar día: sin Por anotar ni botones para sumar');
+await page.getByRole('button', { name: 'Reabrir día' }).click();
+ok((await page.locator('.cab-sub').innerText()) === 'Día abierto' && (await page.locator('#tit-por-anotar').count()) === 1, 'Reabrir día devuelve Por anotar');
+
+// Al día siguiente la lista sale completa otra vez (otro día sin gastos)
 await page.getByRole('button', { name: 'Borrarlo' }).click();
 ok(!(await page.locator('.aviso.ejemplo').count()), 'Borrar el ejemplo quita el aviso');
+await page.getByRole('button', { name: 'Día anterior' }).click();
+ok((await page.locator('.pa-fila .pa-nombre').count()) === filas0.length && (await page.locator('.pa-fila').count()) === filas0.length + 1, 'Otro día sin gastos: Por anotar vuelve completa');
+await page.getByRole('button', { name: 'Día siguiente' }).click();
 
 // 3) Reportes: abrir un día (en la versión anterior esto rompía la app) y compartir
 await page.getByRole('button', { name: 'Reportes' }).click();
 await page.locator('.fila-dia').first().click();
-ok((await page.locator('.cuaderno').first().innerText()).includes('220.000'), 'Reportes: el día abierto muestra el cuaderno');
+ok((await page.locator('.cuaderno').first().innerText()).includes('235.000'), 'Reportes: el día abierto muestra el cuaderno');
 await page.getByRole('button', { name: 'Compartir', exact: true }).click();
 await page.waitForSelector('img.vista-previa', { timeout: 8000 });
 const tam = await page.evaluate(() => { const i = document.querySelector('img.vista-previa'); return [i.naturalWidth, i.naturalHeight]; });
@@ -117,7 +189,7 @@ await page.waitForSelector('text=Restaurar copia');
 await foto('10-restaurar');
 await page.getByRole('button', { name: 'Sí, restaurar' }).click();
 await page.waitForSelector('.marca');
-ok((await page.locator('.cuadre-venta').innerText()) === '220.000', 'Restaurar devuelve los datos completos');
+ok((await page.locator('.cuadre-venta').innerText()) === '235.000', 'Restaurar devuelve los datos completos');
 
 // 6) Datos viejos de "Caja del Día" (sin la configuración nueva)
 await page.evaluate(() => {
@@ -128,7 +200,7 @@ await page.evaluate(() => {
 await page.reload();
 await sinSplash();
 ok(await page.locator('.marca').isVisible(), 'Quien ya usaba Caja del Día entra directo, sin bienvenida');
-ok((await page.locator('.chip').allInnerTexts()).join() === 'Pollo,Cocacola,Otro', 'Conserva sus conceptos de siempre');
+ok((await page.locator('.pa-fila .pa-nombre').allInnerTexts()).join() === 'Pollo,Cocacola' && (await page.locator('.pa-fila').count()) === 3, 'Conserva sus conceptos de siempre (Pollo y Cocacola salen en Por anotar, más la fila Otro)');
 
 // 7) Sin internet
 await page.evaluate(() => navigator.serviceWorker.ready);
@@ -142,7 +214,7 @@ await ctx.setOffline(false);
 
 // 8) Modo oscuro
 await page.emulateMedia({ colorScheme: 'dark' });
-await foto('11-oscuro');
+await foto('11-oscuro-datos-viejos');
 
 ok(errores.length === 0, `Sin errores de JavaScript${errores.length ? ': ' + errores.join(' | ') : ''}`);
 await navegador.close();

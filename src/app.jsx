@@ -1,6 +1,6 @@
 /* Cuadrao — app (React 18 sin bundler: React y ReactDOM llegan como globales desde vendor/).
    El build antepone `const MARCA = {...}` (ver src/marca.mjs) y `const VERSION_APP = '...'`. */
-const { useState, useEffect, useMemo, useRef } = React;
+const { useState, useEffect, useMemo, useRef, useId } = React;
 
 /* ===================== CALC-START (lógica pura) ===================== */
 const VERSION_DATOS = 1;
@@ -346,6 +346,7 @@ const Ico = {
   izq: <svg width="20" height="20" viewBox="0 0 24 24" {...svgProps}><path d="M15 18l-6-6 6-6"/></svg>,
   der: <svg width="20" height="20" viewBox="0 0 24 24" {...svgProps}><path d="M9 18l6-6-6-6"/></svg>,
   mas: <svg width="22" height="22" viewBox="0 0 24 24" {...svgProps} strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>,
+  check: <svg width="22" height="22" viewBox="0 0 24 24" {...svgProps} strokeWidth="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>,
   barras: <svg width="22" height="22" viewBox="0 0 24 24" {...svgProps}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
   hoja: <svg width="22" height="22" viewBox="0 0 24 24" {...svgProps}><path d="M8 3h8l4 4v14H4V3h4zM8 12h8M8 16h5"/></svg>,
   ajustes: <svg width="22" height="22" viewBox="0 0 24 24" {...svgProps}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
@@ -382,13 +383,14 @@ function CampoPesos({ id, etiqueta, valor, onCambio, disabled, grande, placehold
 
 function Hoja({ titulo, onCerrar, children, cerrarTexto = 'Cancelar' }) {
   const ref = useRef(null);
-  useEffect(() => { const el = ref.current && ref.current.querySelector('input, button.btn-prim'); el && el.focus(); }, []);
+  const idTit = useId();
+  useEffect(() => { const el = ref.current && ref.current.querySelector('input:not(:disabled), button.btn-prim'); el && el.focus(); }, []);
   return (
     <div className="velo" onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
-      <div className="hoja" role="dialog" aria-modal="true" aria-labelledby="tit-hoja" ref={ref}
+      <div className="hoja" role="dialog" aria-modal="true" aria-labelledby={idTit} ref={ref}
         onKeyDown={(e) => { if (e.key === 'Escape') onCerrar(); }}>
         <div className="fila-tit" style={{ alignItems: 'center' }}>
-          <h2 className="h2" id="tit-hoja">{titulo}</h2>
+          <h2 className="h2" id={idTit}>{titulo}</h2>
           <button className="btn-link" onClick={onCerrar}>{cerrarTexto}</button>
         </div>
         {children}
@@ -578,28 +580,138 @@ function Avisos({ db, hoy, acciones, irA }) {
 }
 
 /* ---------- Registro ---------- */
+// Una fila de "Por anotar": el concepto ya está, solo se pone el precio y se toca el chulito
+function FilaPorAnotar({ id, concepto, onAnotar }) {
+  const [monto, setMonto] = useState(0);
+  const enviar = (e) => { e.preventDefault(); onAnotar(concepto, monto); };
+  return (
+    <form className="pa-fila" onSubmit={enviar}>
+      <label htmlFor={id} className="pa-nombre">{concepto}</label>
+      <input id={id} className="entrada pa-precio" inputMode="numeric" autoComplete="off" placeholder="0"
+        aria-label={`Valor de ${concepto}`} value={monto ? formatoPesos(monto) : ''}
+        onChange={(e) => setMonto(leerMonto(e.target.value))} />
+      <button type="submit" className={'btn-check' + (monto ? ' listo' : '')} aria-label={`Anotar ${concepto}`}>{Ico.check}</button>
+    </form>
+  );
+}
+
+// "Otro": se escribe qué fue; la fila se queda para anotar más
+function FilaOtro({ onAnotar }) {
+  const [texto, setTexto] = useState('');
+  const [monto, setMonto] = useState(0);
+  const enviar = (e) => {
+    e.preventDefault();
+    if (!monto) { onAnotar('Otro', 0); return; }
+    onAnotar(texto.trim().slice(0, 40) || 'Otro', monto);
+    setTexto(''); setMonto(0);
+  };
+  return (
+    <form className="pa-fila pa-otro" onSubmit={enviar}>
+      <input id="otro-texto" className="entrada pa-texto" maxLength={40} autoComplete="off" placeholder="¿Qué fue?"
+        aria-label="¿Qué fue? (Otro gasto)" value={texto} onChange={(e) => setTexto(e.target.value)} />
+      <input id="otro-precio" className="entrada pa-precio corto" inputMode="numeric" autoComplete="off" placeholder="0"
+        aria-label="Valor de Otro" value={monto ? formatoPesos(monto) : ''}
+        onChange={(e) => setMonto(leerMonto(e.target.value))} />
+      <button type="submit" className={'btn-check' + (monto ? ' listo' : '')} aria-label="Anotar Otro">{Ico.check}</button>
+    </form>
+  );
+}
+
+// Gastos del día juntos por concepto; el último que se anotó va arriba
+function agruparGastos(gastos) {
+  const m = new Map();
+  gastos.forEach((g, i) => {
+    const x = m.get(g.concepto) || { concepto: g.concepto, items: [], total: 0, ultimo: 0 };
+    x.items.push(g); x.total += Number(g.monto) || 0; x.ultimo = i;
+    m.set(g.concepto, x);
+  });
+  return [...m.values()].sort((a, b) => b.ultimo - a.ultimo);
+}
+
+function RenglonAnotado({ grupo, cerrado, sumando, abierto, onSumar, onAbrir, onSuma, onEditar }) {
+  const [monto, setMonto] = useState(0);
+  const n = grupo.items.length;
+  const guardar = (e) => {
+    e.preventDefault();
+    if (!monto) return;
+    onSuma(grupo.concepto, monto);
+    setMonto(0);
+  };
+  return (
+    <div className="anot">
+      <div className="anot-fila">
+        <button type="button" className="anot-main" aria-expanded={abierto} onClick={onAbrir}>
+          <span className="anot-izq">
+            <span className="anot-nom">{grupo.concepto}</span>
+            {n > 1 && <span className="pastilla">{n} veces</span>}
+          </span>
+          <span className="anot-total">{formatoPesos(grupo.total)}</span>
+          {n > 1 && <span className="anot-det">{grupo.items.map((g) => formatoPesos(g.monto)).join(' + ')}</span>}
+        </button>
+        {!cerrado && (
+          <button type="button" className="btn-mas-borde" aria-label={`Sumar otro valor a ${grupo.concepto}`} aria-expanded={sumando} onClick={onSumar}>{Ico.mas}</button>
+        )}
+      </div>
+      {sumando && !cerrado && (
+        <form className="anot-suma" onSubmit={guardar}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <CampoPesos id={'suma-' + grupo.concepto.replace(/\W+/g, '-')} etiqueta="Sumar otra vez" ocultarEtiqueta valor={monto} onCambio={setMonto} placeholder="Sumar otra vez" />
+          </div>
+          <button type="submit" className="btn-prim chico">Sumar</button>
+        </form>
+      )}
+      {abierto && (
+        <div className="dos-apretado anot-items">
+          {grupo.items.map((g) => (
+            <button key={g.id} className="item gasto" disabled={cerrado} aria-label={`${g.concepto} ${formatoPesos(g.monto)}. Editar o borrar`}
+              onClick={() => onEditar(g)}>
+              <span className="item-nom">{g.concepto}</span>
+              <span className="item-val">{formatoPesos(g.monto)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Cerrar o reabrir el día (antes vivía en la barra de abajo)
+function ControlesCierre({ cerrado, onCerrar, onReabrir }) {
+  return (
+    <section className="cierre" aria-label="Cierre del día">
+      <p>{cerrado ? 'Este día está cerrado.' : 'Cuando termines de anotar, cierra el día.'}</p>
+      {cerrado
+        ? <button className="btn-reabrir" onClick={onReabrir}>Reabrir día</button>
+        : <button className="btn-cierre" onClick={onCerrar}>Cerrar día</button>}
+    </section>
+  );
+}
+
 function PantallaRegistro({ db, fecha, setFecha, hoy, acciones, irA }) {
   const dia = buscarDia(db, fecha);
   const gastos = dia ? db.gastos.filter((g) => g.dia_id === dia.id) : [];
   const transfers = dia ? db.transferencias.filter((t) => t.dia_id === dia.id) : [];
   const c = cuadre(dia || { base: baseSugerida(db), efectivo: 0 }, gastos, transfers);
-  const cerrado = dia && dia.estado === 'cerrado';
+  const cerrado = !!dia && dia.estado === 'cerrado';
   const conceptos = db.config.conceptos;
-  const [concepto, setConcepto] = useState(conceptos[0]);
-  const [detalle, setDetalle] = useState('');
-  const [montoG, setMontoG] = useState(0);
-  const [montoT, setMontoT] = useState(0);
   const [editando, setEditando] = useState(null);
-  const [llaveG, setLlaveG] = useState(0);
+  const [hojaTransf, setHojaTransf] = useState(false);
+  const [hojaBase, setHojaBase] = useState(false);
   const [llaveT, setLlaveT] = useState(0);
-  useEffect(() => { if (!conceptos.includes(concepto)) setConcepto(conceptos[0]); }, [conceptos]);
+  const [montoT, setMontoT] = useState(0);
+  const [sumando, setSumando] = useState(null);
+  const [abierto, setAbierto] = useState(null);
+  useEffect(() => { setSumando(null); setAbierto(null); setHojaTransf(false); setHojaBase(false); setEditando(null); }, [fecha]);
 
-  const agregarGasto = (e) => {
-    e.preventDefault();
-    if (!montoG) { acciones.aviso('Escribe el valor del gasto'); return; }
-    const nombre = concepto === 'Otro' && detalle.trim() ? detalle.trim().slice(0, 40) : concepto;
-    acciones.agregarGasto(fecha, nombre, montoG);
-    setMontoG(0); setDetalle(''); setLlaveG((k) => k + 1);
+  // Por anotar depende solo de los gastos de ESTE día: al día siguiente la lista sale completa
+  const fijos = conceptos.filter((x) => x !== 'Otro');
+  const anotados = new Set(gastos.map((g) => g.concepto));
+  const pendientes = fijos.filter((x) => !anotados.has(x));
+  const grupos = agruparGastos(gastos);
+
+  const anotar = (concepto, monto) => {
+    if (!monto) { acciones.aviso(`Escribe el valor de ${concepto}`); return; }
+    acciones.agregarGasto(fecha, concepto, monto);
   };
   const agregarTransf = (e) => {
     e.preventDefault();
@@ -607,9 +719,11 @@ function PantallaRegistro({ db, fecha, setFecha, hoy, acciones, irA }) {
     acciones.agregarTransferencia(fecha, montoT);
     setMontoT(0); setLlaveT((k) => k + 1);
   };
+  const nT = transfers.length;
+  const hayEfectivo = c.efectivo > 0;
 
   return (
-    <div className="pantalla con-cuadre">
+    <div className="pantalla">
       <header className="cab">
         <button className="btn-icono" aria-label="Día anterior" onClick={() => setFecha(sumarDias(fecha, -1))}>{Ico.izq}</button>
         <div className="cab-centro">
@@ -619,74 +733,88 @@ function PantallaRegistro({ db, fecha, setFecha, hoy, acciones, irA }) {
         <button className="btn-icono" aria-label="Día siguiente" disabled={fecha >= hoy} onClick={() => setFecha(sumarDias(fecha, 1))}>{Ico.der}</button>
       </header>
 
-      <div className="pila">
-        <Avisos db={db} hoy={hoy} acciones={acciones} irA={irA} />
+      <div className="fijo">
         <div className="dos">
-          <div className="caja campo-caja">
-            <CampoPesos id="base" etiqueta="Base" valor={c.base} disabled={cerrado} grande
-              onCambio={(n) => acciones.cambiarCampo(fecha, { base: n })} />
-          </div>
           <div className="caja campo-caja">
             <CampoPesos id="efectivo" etiqueta="Efectivo en caja" valor={c.efectivo} disabled={cerrado} grande placeholder="0"
               onCambio={(n) => acciones.cambiarCampo(fecha, { efectivo: n })} />
           </div>
+          <div className="caja caja-transf">
+            <div className="transf-txt">
+              <span className="etq">Transferencias</span>
+              <span className="transf-total" aria-live="polite">{formatoPesos(c.transferencias)}</span>
+              <span className="transf-sub">{nT === 0 ? 'Ninguna aún' : nT === 1 ? '1 recibida' : `${nT} recibidas`}</span>
+            </div>
+            {!cerrado && (
+              <button type="button" className="btn-mas transf cuadrado" aria-label="Sumar transferencia" aria-haspopup="dialog" onClick={() => setHojaTransf(true)}>{Ico.mas}</button>
+            )}
+          </div>
         </div>
 
-        <section className="caja pila" aria-labelledby="tit-gastos">
+        <section className="saldo" aria-label="Saldo del día">
+          <div className="saldo-fila">
+            <span className="saldo-etq">Saldo del día</span>
+            <span className="saldo-num" aria-live="polite">{hayEfectivo ? formatoPesos(c.ganancia) : '—'}</span>
+          </div>
+          <button type="button" className="saldo-base" aria-haspopup="dialog" onClick={() => setHojaBase(true)}>
+            {hayEfectivo
+              ? <>Base {formatoPesos(c.base)} · Venta <span className="cuadre-venta">{formatoPesos(c.venta)}</span></>
+              : <>Base {formatoPesos(c.base)} · pon el efectivo para ver el saldo<span className="cuadre-venta sr" aria-hidden="true">{formatoPesos(c.venta)}</span></>}
+          </button>
+        </section>
+      </div>
+
+      <div className="pila zona">
+        <Avisos db={db} hoy={hoy} acciones={acciones} irA={irA} />
+
+        {!cerrado && (
+          <section className="pila" style={{ gap: 6 }} aria-labelledby="tit-por-anotar">
+            <div className="fila-tit">
+              <h2 className="h2" id="tit-por-anotar">Por anotar</h2>
+              {fijos.length > 0 && <span className="pa-cuenta">{pendientes.length === 0 ? 'Todo anotado' : pendientes.length === 1 ? 'Falta 1' : `Faltan ${pendientes.length}`}</span>}
+            </div>
+            {pendientes.length === 0 && <p className="nota-ok" role="status">Todo anotado por hoy. Mañana la lista vuelve a salir completa.</p>}
+            <div className="caja pa">
+              {pendientes.map((x) => <FilaPorAnotar key={x} id={'pa-' + fijos.indexOf(x)} concepto={x} onAnotar={anotar} />)}
+              <FilaOtro onAnotar={anotar} />
+            </div>
+            {pendientes.length > 0 && <p className="ayuda">Pon el valor y toca el chulito: baja a Anotados hoy.</p>}
+          </section>
+        )}
+
+        <section className="pila" style={{ gap: 6 }} aria-labelledby="tit-anotados">
           <div className="fila-tit">
-            <h2 className="h2" id="tit-gastos">Gastos</h2>
+            <h2 className="h2" id="tit-anotados">Anotados hoy</h2>
             <span className="total-gasto">{formatoPesos(c.gastos)}</span>
           </div>
-          {!cerrado && (
-            <>
-              <div className="chips" role="group" aria-label="Concepto del gasto">
-                {conceptos.map((n) => (
-                  <button key={n} type="button" className="chip" aria-pressed={concepto === n} onClick={() => setConcepto(n)}>{n}</button>
-                ))}
-              </div>
-              {concepto === 'Otro' && (
-                <>
-                  <label htmlFor="detalle" className="sr">Qué fue el gasto</label>
-                  <input id="detalle" className="entrada" placeholder="¿Qué fue? (opcional)" maxLength={40} value={detalle} onChange={(e) => setDetalle(e.target.value)} />
-                </>
-              )}
-              <form className="agregar" onSubmit={agregarGasto}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <CampoPesos key={llaveG} id="monto-gasto" etiqueta="Valor del gasto" ocultarEtiqueta valor={montoG} onCambio={setMontoG} placeholder={`Valor de ${concepto}`} />
-                </div>
-                <button type="submit" className="btn-mas gasto" aria-label="Agregar gasto">{Ico.mas}</button>
-              </form>
-            </>
-          )}
-          {gastos.length ? (
-            <div className="dos-apretado">
-              {gastos.map((g) => (
-                <button key={g.id} className="item gasto" disabled={cerrado} aria-label={`${g.concepto} ${formatoPesos(g.monto)}. Editar o borrar`}
-                  onClick={() => setEditando({ tipo: 'gasto', item: g })}>
-                  <span className="item-nom">{g.concepto}</span>
-                  <span className="item-val">{formatoPesos(g.monto)}</span>
-                </button>
+          {grupos.length ? (
+            <div className="caja anotados">
+              {grupos.map((g) => (
+                <RenglonAnotado key={g.concepto} grupo={g} cerrado={cerrado}
+                  sumando={sumando === g.concepto} abierto={abierto === g.concepto}
+                  onSumar={() => setSumando(sumando === g.concepto ? null : g.concepto)}
+                  onAbrir={() => setAbierto(abierto === g.concepto ? null : g.concepto)}
+                  onSuma={(concepto, monto) => { acciones.agregarGasto(fecha, concepto, monto); setSumando(null); }}
+                  onEditar={(item) => setEditando({ tipo: 'gasto', item })} />
               ))}
             </div>
-          ) : <p className="vacio-mini">Todavía no hay gastos. Escoge el concepto, escribe el valor y toca +.</p>}
-          {gastos.length > 0 && !cerrado && <p className="ayuda">Toca un gasto para editarlo o borrarlo</p>}
+          ) : <p className="vacio-caja">Aún no has anotado gastos hoy.</p>}
+          {grupos.length > 0 && !cerrado && <p className="ayuda">Toca un concepto para ver sus gastos y editarlos o borrarlos.</p>}
         </section>
 
-        <section className="caja pila" aria-labelledby="tit-transf">
-          <div className="fila-tit">
-            <h2 className="h2" id="tit-transf">Transferencias</h2>
-            <span className="total-transf">{formatoPesos(c.transferencias)}</span>
-          </div>
-          {!cerrado && (
-            <form className="agregar" onSubmit={agregarTransf}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <CampoPesos key={llaveT} id="monto-transf" etiqueta="Valor de la transferencia" ocultarEtiqueta valor={montoT} onCambio={setMontoT} placeholder="Valor recibido" />
-              </div>
-              <button type="submit" className="btn-mas transf" aria-label="Agregar transferencia">{Ico.mas}</button>
-            </form>
-          )}
+        <ControlesCierre cerrado={cerrado} onCerrar={() => acciones.cerrarDia(fecha)} onReabrir={() => acciones.reabrirDia(fecha)} />
+      </div>
+
+      {hojaTransf && (
+        <Hoja titulo="Transferencias de hoy" onCerrar={() => setHojaTransf(false)} cerrarTexto="Cerrar">
+          <form className="agregar" onSubmit={agregarTransf}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <CampoPesos key={llaveT} id="monto-transf" etiqueta="Valor de la transferencia" ocultarEtiqueta valor={montoT} onCambio={setMontoT} placeholder="Valor recibido" />
+            </div>
+            <button type="submit" className="btn-mas transf" aria-label="Agregar transferencia">{Ico.mas}</button>
+          </form>
           {transfers.length ? (
-            <div className="dos-apretado">
+            <div className="pila" style={{ gap: 6 }}>
               {transfers.map((t, i) => (
                 <button key={t.id} className="item transf" disabled={cerrado} aria-label={`Transferencia ${i + 1} ${formatoPesos(t.monto)}. Editar o borrar`}
                   onClick={() => setEditando({ tipo: 'transf', item: t })}>
@@ -694,10 +822,24 @@ function PantallaRegistro({ db, fecha, setFecha, hoy, acciones, irA }) {
                   <span className="item-val">{formatoPesos(t.monto)}</span>
                 </button>
               ))}
+              <p className="ayuda">Toca una para editarla o borrarla</p>
             </div>
           ) : <p className="vacio-mini">Sin transferencias este día.</p>}
-        </section>
-      </div>
+          <div className="fila-total"><span>Total del día</span><strong className="c-transf">{formatoPesos(c.transferencias)}</strong></div>
+          <button type="button" className="btn-prim ancho" onClick={() => setHojaTransf(false)}>Listo</button>
+        </Hoja>
+      )}
+
+      {hojaBase && (
+        <Hoja titulo="Base de hoy" onCerrar={() => setHojaBase(false)} cerrarTexto="Cerrar">
+          <div className="campo-caja" style={{ padding: 0 }}>
+            <CampoPesos id="base" etiqueta="Base" valor={c.base} disabled={cerrado} grande placeholder="0"
+              onCambio={(n) => acciones.cambiarCampo(fecha, { base: n })} />
+          </div>
+          <p className="ayuda">{cerrado ? 'Este día está cerrado: reábrelo para cambiar la base.' : 'Es la plata con la que arrancaste el día. Solo cambia la de hoy.'}</p>
+          <button type="button" className="btn-prim ancho" onClick={() => setHojaBase(false)}>Listo</button>
+        </Hoja>
+      )}
 
       {editando && (
         <HojaEditar
@@ -708,30 +850,6 @@ function PantallaRegistro({ db, fecha, setFecha, hoy, acciones, irA }) {
         />
       )}
     </div>
-  );
-}
-
-function cuadreDeFecha(db, fecha) {
-  const dia = buscarDia(db, fecha);
-  const gastos = dia ? db.gastos.filter((g) => g.dia_id === dia.id) : [];
-  const transfers = dia ? db.transferencias.filter((t) => t.dia_id === dia.id) : [];
-  return { c: cuadre(dia || { base: baseSugerida(db), efectivo: 0 }, gastos, transfers), cerrado: !!dia && dia.estado === 'cerrado' };
-}
-
-function PieCuadre({ c, cerrado, onCerrar, onReabrir }) {
-  return (
-    <section className="cuadre" aria-label="Cuadre del día" id="cuadre">
-      <div className="cuadre-formula">G {formatoPesos(c.gastos)} + T {formatoPesos(c.transferencias)} + E {formatoPesos(c.efectivo)} − B {formatoPesos(c.base)}</div>
-      <div className="cuadre-fila">
-        <div>
-          <span className="cuadre-etq">Venta del día</span>
-          <span className="cuadre-venta" aria-live="polite">{formatoPesos(c.venta)}</span>
-        </div>
-        {cerrado
-          ? <button className="btn-reabrir" onClick={onReabrir}>Reabrir día</button>
-          : <button className="btn-cierre" onClick={onCerrar}>Cerrar día</button>}
-      </div>
-    </section>
   );
 }
 
@@ -1034,7 +1152,8 @@ function PantallaAjustes({ db, hoy, acciones, onRestaurar }) {
               onCambio={(n) => acciones.cambiarConfig({ base_por_defecto: n })} />
           </div>
           <p className="ayuda">Los días nuevos arrancan con esta base. Cada día la puedes cambiar en Registro.</p>
-          <span className="etq" style={{ marginTop: 4 }}>Gastos de todos los días</span>
+          <span className="etq" style={{ marginTop: 4 }}>Gastos de siempre</span>
+          <p className="ayuda">Salen cada día en Por anotar. Ahí solo pones el precio.</p>
           <EditorConceptos conceptos={cfg.conceptos} onCambio={(c) => acciones.cambiarConfig({ conceptos: c })} idBase="aj" />
         </section>
 
@@ -1179,7 +1298,7 @@ function App() {
     <>
       {restaurando && <HojaRestaurar datos={restaurando} onConfirmar={acciones.confirmarRestaurar} onCerrar={() => setRestaurando(null)} />}
       {reporte && <HojaCompartir rep={reporte} negocio={db.config.nombre_negocio} aviso={aviso} onCerrar={() => setReporte(null)} />}
-      {toast && <div className={'toast' + (vista === 'registro' ? '' : ' alto')} role="status">{toast}</div>}
+      {toast && <div className="toast" role="status">{toast}</div>}
     </>
   );
 
@@ -1204,9 +1323,6 @@ function App() {
 
       <div className="abajo">
         <div className="abajo-in">
-          {vista === 'registro' && (() => { const q = cuadreDeFecha(db, fecha); return (
-            <PieCuadre c={q.c} cerrado={q.cerrado} onCerrar={() => acciones.cerrarDia(fecha)} onReabrir={() => acciones.reabrirDia(fecha)} />
-          ); })()}
           <nav className="nav" aria-label="Navegación">
             <button aria-current={vista === 'registro' ? 'page' : undefined} onClick={() => irA('registro')}>{Ico.mas}Registro</button>
             <button aria-current={vista === 'hoy' ? 'page' : undefined} onClick={() => irA('hoy')}>{Ico.barras}{fecha === hoy ? 'Hoy' : 'Día'}</button>

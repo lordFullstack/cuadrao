@@ -12,7 +12,8 @@ Antes se llamaba "Caja del Día". El original quedó sin tocar en `Descargas\caj
 ## Qué trae
 - **Splash** de 1,5 s con el logo que se dibuja, el eslogan y "por Synaptix AI Labs".
 - **Primer uso guiado**: nombre del negocio, tipo de negocio (con conceptos de gasto sugeridos y editables), base de caja y un día de ejemplo opcional.
-- **Registro / Hoy / Reportes**, igual que antes, con la marca nueva.
+- **Registro rápido** (v1.2): arriba, siempre a la vista, el efectivo en caja, las transferencias del día (con un botón + para sumar varias) y el **saldo del día** (efectivo + transferencias − base) con la base y la venta en una línea. Abajo, **Por anotar** trae los gastos de siempre de tu negocio: pones el precio, tocas el chulito y baja a **Anotados hoy**, donde cada concepto suma sus veces (80.000 + 50.000) y se puede editar o borrar. Cada día la lista de Por anotar sale completa otra vez. "Cerrar día" quedó al final de la pantalla.
+- **Hoy / Reportes**, igual que antes, con la marca nueva.
 - **Copia de seguridad** en Ajustes (⚙): "Enviar copia" abre el menú de compartir del celular (WhatsApp, correo, Drive) y "Restaurar una copia" pide confirmación mostrando qué trae. Si pasan 7 días sin copia, aparece un aviso amarillo en Registro.
 - **Reporte compartible**: el cuadre del día o el resumen del mes como imagen (para WhatsApp) o PDF.
 - **Funciona sin internet**: todo (React, fuente, íconos) va dentro de la app y el service worker lo guarda.
@@ -26,7 +27,7 @@ Antes se llamaba "Caja del Día". El original quedó sin tocar en `Descargas\caj
 | `src/sw.js`, `src/manifest.webmanifest` | PWA: uso sin internet e instalación. |
 | `scripts/build.mjs` | Arma `dist/` (lo que se publica). |
 | `scripts/serve.mjs` | Servidor local en http://localhost:5180 |
-| `scripts/prueba.mjs` | Prueba de punta a punta (16 revisiones) con Edge. |
+| `scripts/prueba.mjs` | Prueba de punta a punta con Edge. |
 | `supabase/schema.sql` | Tablas para la migración futura (NO correr todavía). |
 
 ## Trabajar
